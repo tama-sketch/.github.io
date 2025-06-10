@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zikan_de_taipuraito</title>
+    <link rel="stylesheet" href="jikan_no_jikan.css">
+</head>
+<body>
+    <div class="text" id="text"></div>
+    <div class="cursor" id="cursor"></div>
+
+    <script>
+        const textElement = document.getElementById('text');
+        const cursorElement = document.getElementById('cursor');
+        let cursorX = 0;
+        let cursorY = 0;
+        let cursorSpeed = 1.5;
+        let lineHeight = 20;
+        let cursorHeight = 15;
+        const cursorWidth = 15;
+
+        let screenWidth = window.innerWidth;
+        let screenHeight = window.innerHeight;
+
+        // マウスドラッグ関連
+        let isDragging = false;
+        let cursorHitAreaSize = 10000000000000; // 当たり判定範囲の大きさ
+
+        // 画面サイズ変更処理
+        window.addEventListener('resize', () => {
+            screenWidth = window.innerWidth;
+            screenHeight = window.innerHeight;
+
+            // カーソル位置の調整
+            cursorX = Math.min(cursorX, screenWidth - cursorWidth);
+            cursorY = Math.min(cursorY, screenHeight - lineHeight);
+            
+            const adjustedCursorY = cursorY + (lineHeight - cursorHeight) / 2;
+            cursorElement.style.transform = `translate(${cursorX}px, ${adjustedCursorY}px)`;
+        });
+
+        // 文字の格納
+        const lines = [];
+
+        function moveCursor() {
+            cursorX += cursorSpeed;
+
+            if (cursorX >= screenWidth - 20) {
+                cursorX = 0;
+                cursorY += lineHeight;
+
+                if (cursorY >= screenHeight - lineHeight) {
+                    cursorY = screenHeight - lineHeight;
+
+                    // 繰り上げ処理
+                    for (let i = 0; i < lines.length; i++) {
+                        lines[i].style.top = `${parseInt(lines[i].style.top) - lineHeight}px`;
+                    }
+                }
+            }
+
+            const adjustedCursorY = cursorY + (lineHeight - cursorHeight) / 2;
+            cursorElement.style.transform = `translate(${cursorX}px, ${adjustedCursorY}px)`;
+        }
+
+        setInterval(moveCursor, 10);
+
+        document.addEventListener('keydown', (event) => {
+            const char = event.key;
+            if (char.length === 1) {
+                const span = document.createElement('span');
+                span.style.position = 'absolute';
+                span.style.left = `${cursorX}px`;
+                span.style.top = `${cursorY}px`;
+                span.textContent = char;
+
+                lines.push(span);
+                textElement.appendChild(span);
+            } else if (char === 'ArrowUp') {
+                cursorSpeed += 1;
+            } else if (char === 'ArrowDown') {
+                cursorSpeed = Math.max(1, cursorSpeed - 1);
+            }
+        });
+
+        // カーソルをドラッグする機能
+        cursorElement.addEventListener('mousedown', (event) => {
+            isDragging = true;
+            document.body.style.cursor = 'grabbing';
+        });
+
+        window.addEventListener('mousemove', (event) => {
+            if (isDragging) {
+                // マウス座標を取得
+                const mouseX = event.clientX;
+                const mouseY = event.clientY;
+
+                // 当たり判定範囲を広げる
+                const hitAreaLeft = cursorX - cursorHitAreaSize;
+                const hitAreaRight = cursorX + cursorWidth + cursorHitAreaSize;
+                const hitAreaTop = cursorY - cursorHitAreaSize;
+                const hitAreaBottom = cursorY + cursorHeight + cursorHitAreaSize;
+
+                // マウスが当たり判定範囲内に入ったらカーソルの位置を変更
+                if (
+                    mouseX >= hitAreaLeft &&
+                    mouseX <= hitAreaRight &&
+                    mouseY >= hitAreaTop &&
+                    mouseY <= hitAreaBottom
+                ) {
+                    cursorX = Math.min(Math.max(0, mouseX), screenWidth - cursorWidth);
+                    cursorY = Math.min(Math.max(0, mouseY), screenHeight - lineHeight);
+
+                    const adjustedCursorY = cursorY + (lineHeight - cursorHeight) / 2;
+                    cursorElement.style.transform = `translate(${cursorX}px, ${adjustedCursorY}px)`;
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                document.body.style.cursor = ''; 
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+    const char = event.key;
+    
+    if (char === ' ') { // スペースキーが押されたとき
+        const allCharacters = document.querySelectorAll('.text span');
+        
+        allCharacters.forEach((charElement) => {
+            // 開始位置を取得
+            const startX = parseInt(charElement.style.left, 10);
+            const startY = parseInt(charElement.style.top, 10);
+            
+            let currentY = startY;
+
+            // アニメーション用の間隔タイマー
+            const interval = setInterval(() => {
+                currentY -= 5; // 上方向に動かす
+                
+                charElement.style.top = `${currentY}px`;
+
+                // 画面上端に到達したら消去
+                if (currentY < 0) {
+                    charElement.remove();
+                    clearInterval(interval);
+                }
+            }, 30); // 30ms間隔で移動
+        });
+
+        // スペースキーの既定動作を無効化
+        event.preventDefault();
+
+        
+    }
+});
+
+// 効果音の準備
+const keySound = new Audio('sound_key.mp3'); // 通常のキー入力の効果音
+const bellSound = new Audio('sound_bell.mp3'); // スペースキー用の効果音
+
+document.addEventListener('keydown', (event) => {
+    const char = event.key;
+
+    if (char === ' ') { // スペースキーが押された場合
+        bellSound.currentTime = 0; // 音をリセットして即再生
+        bellSound.play();
+
+        const allCharacters = document.querySelectorAll('.text span');
+
+        allCharacters.forEach((charElement) => {
+            // 開始位置を取得
+            const startX = parseInt(charElement.style.left, 10);
+            const startY = parseInt(charElement.style.top, 10);
+
+            let currentY = startY;
+
+            // アニメーション用の間隔タイマー
+            const interval = setInterval(() => {
+                currentY -= 5; // 上方向に動かす
+
+                charElement.style.top = `${currentY}px`;
+
+                // 画面上端に到達したら消去
+                if (currentY < 0) {
+                    charElement.remove();
+                    clearInterval(interval);
+                }
+            }, 30); // 30ms間隔で移動
+        });
+
+        // スペースキーの既定動作を無効化
+        event.preventDefault();
+    } else if (char.length === 1) { // 通常の文字キーが押された場合
+        keySound.currentTime = 0; // 音をリセットして即再生
+        keySound.play();
+
+        const span = document.createElement('span');
+        span.style.position = 'absolute';
+        span.style.left = `${cursorX}px`;
+        span.style.top = `${cursorY}px`;
+        span.textContent = char;
+
+        lines.push(span);
+        textElement.appendChild(span);
+    } else if (char === 'ArrowUp') {
+        cursorSpeed += 1;
+    } else if (char === 'ArrowDown') {
+        cursorSpeed = Math.max(1, cursorSpeed - 1);
+    }
+});
+
+
+    </script>
+</body>
+</html>
